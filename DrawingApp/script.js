@@ -159,11 +159,27 @@ function createColorPalette() {
             swatch.classList.add('active');
             currentColor = color;
             colorPicker.value = color;
-            setTool(SHAPE_TYPES.BRUSH);
+            // Update the current tool's color without changing the tool
+            updateToolColor();
         });
         
         colorPalette.appendChild(swatch);
     });
+}
+
+// Update the current tool's color
+function updateToolColor() {
+    if (currentTool === SHAPE_TYPES.BRUSH || 
+        currentTool === SHAPE_TYPES.LINE || 
+        currentTool === SHAPE_TYPES.RECTANGLE || 
+        currentTool === SHAPE_TYPES.CIRCLE) {
+        ctx.strokeStyle = currentColor;
+    }
+    
+    if (currentTool === SHAPE_TYPES.TEXT || 
+        currentTool === SHAPE_TYPES.ARROW) {
+        ctx.fillStyle = currentColor;
+    }
 }
 
 // Set up event listeners
@@ -189,7 +205,7 @@ function setupEventListeners() {
     // Control events
     colorPicker.addEventListener('input', (e) => {
         currentColor = e.target.value;
-        setTool(SHAPE_TYPES.BRUSH);
+        updateToolColor();
         updateActiveSwatch(currentColor);
     });
     
@@ -255,19 +271,27 @@ function setTool(tool) {
     if (tool === SHAPE_TYPES.BRUSH) {
         brushBtn.classList.add('active-tool');
         ctx.strokeStyle = currentColor;
+        ctx.fillStyle = currentColor;
     } else if (tool === SHAPE_TYPES.ERASER) {
         eraserBtn.classList.add('active-tool');
         ctx.strokeStyle = 'white';
+        ctx.fillStyle = 'white';
     } else if (tool === SHAPE_TYPES.TEXT) {
         textBtn.classList.add('active-tool');
+        ctx.fillStyle = currentColor;
     } else if (tool === SHAPE_TYPES.LINE) {
         lineBtn.classList.add('active-tool');
+        ctx.strokeStyle = currentColor;
     } else if (tool === SHAPE_TYPES.RECTANGLE) {
         rectBtn.classList.add('active-tool');
+        ctx.strokeStyle = currentColor;
     } else if (tool === SHAPE_TYPES.CIRCLE) {
         circleBtn.classList.add('active-tool');
+        ctx.strokeStyle = currentColor;
     } else if (tool === SHAPE_TYPES.ARROW) {
         arrowBtn.classList.add('active-tool');
+        ctx.strokeStyle = currentColor;
+        ctx.fillStyle = currentColor;
     }
 }
 
@@ -498,10 +522,12 @@ function clearCanvas() {
 }
 
 function saveDrawing() {
-    const link = document.createElement('a');
-    link.download = 'drawing.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    if (confirm('Are you sure you want to save your drawing?')) {
+        const link = document.createElement('a');
+        link.download = 'drawing.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
 }
 
 // Touch event handlers
