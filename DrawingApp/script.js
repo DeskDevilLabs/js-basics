@@ -15,6 +15,7 @@ const gridBtn = document.getElementById('grid-btn');
 const clearBtn = document.getElementById('clear-btn');
 const saveBtn = document.getElementById('save-btn');
 const fullscreenBtn = document.getElementById('fullscreen-btn');
+const exitBtn = document.getElementById('exit-btn');
 const colorPalette = document.querySelector('.color-palette');
 const textInputContainer = document.getElementById('text-input-container');
 const textInput = document.getElementById('text-input');
@@ -101,7 +102,9 @@ function resizeCanvas() {
     
     // Redraw grid if it was visible
     if (isGridVisible) {
+        const tempImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
         drawGrid();
+        ctx.putImageData(tempImage, 0, 0);
     }
 }
 
@@ -206,6 +209,16 @@ function setupEventListeners() {
     clearBtn.addEventListener('click', clearCanvas);
     saveBtn.addEventListener('click', saveDrawing);
     fullscreenBtn.addEventListener('click', toggleFullscreen);
+    exitBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to exit?')) {
+            try {
+                window.close();
+            } catch (e) {
+                // Fallback for browsers that block window.close()
+                window.location.href = 'about:blank';
+            }
+        }
+    });
 }
 
 // Update fullscreen button text
@@ -406,13 +419,19 @@ function handleTextInput(e) {
 // Grid functions
 function toggleGrid() {
     isGridVisible = !isGridVisible;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     if (isGridVisible) {
         drawGrid();
         gridBtn.classList.add('active-tool');
     } else {
-        redrawCanvas();
         gridBtn.classList.remove('active-tool');
     }
+    
+    ctx.putImageData(imageData, 0, 0);
 }
 
 function drawGrid() {
@@ -438,11 +457,13 @@ function drawGrid() {
 }
 
 function redrawCanvas() {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (isGridVisible) {
         drawGrid();
     }
+    ctx.putImageData(imageData, 0, 0);
 }
 
 // Helper functions
@@ -469,9 +490,11 @@ function updateActiveSwatch(color) {
 }
 
 function clearCanvas() {
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = currentColor;
+    if (confirm('Are you sure you want to clear the canvas?')) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = currentColor;
+    }
 }
 
 function saveDrawing() {
