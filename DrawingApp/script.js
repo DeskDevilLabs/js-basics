@@ -4,9 +4,10 @@ const ctx = canvas.getContext('2d');
 const colorPicker = document.getElementById('color-picker');
 const brushSize = document.getElementById('brush-size');
 const brushSizeValue = document.getElementById('brush-size-value');
-const clearBtn = document.getElementById('clear-btn');
+const brushBtn = document.getElementById('brush-btn');
 const eraserBtn = document.getElementById('eraser-btn');
 const strokeEraserBtn = document.getElementById('stroke-eraser-btn');
+const clearBtn = document.getElementById('clear-btn');
 const saveBtn = document.getElementById('save-btn');
 const colorPalette = document.querySelector('.color-palette');
 
@@ -14,8 +15,7 @@ const colorPalette = document.querySelector('.color-palette');
 let isDrawing = false;
 let currentColor = colorPicker.value;
 let currentSize = brushSize.value;
-let isEraser = false;
-let isStrokeEraser = false;
+let currentTool = 'brush'; // 'brush', 'eraser', or 'strokeEraser'
 let lastPaths = [];
 let currentPath = [];
 
@@ -49,27 +49,18 @@ function createColorPalette() {
         swatch.style.backgroundColor = color;
         swatch.dataset.color = color;
         
-        // Set first color as active
         if (color === currentColor) {
             swatch.classList.add('active');
         }
         
         swatch.addEventListener('click', () => {
-            // Remove active class from all swatches
             document.querySelectorAll('.color-swatch').forEach(sw => {
                 sw.classList.remove('active');
             });
-            
-            // Add active class to clicked swatch
             swatch.classList.add('active');
-            
-            // Set current color
             currentColor = color;
             colorPicker.value = color;
-            isEraser = false;
-            isStrokeEraser = false;
-            eraserBtn.textContent = 'Eraser';
-            strokeEraserBtn.textContent = 'Stroke Eraser';
+            setTool('brush');
         });
         
         colorPalette.appendChild(swatch);
@@ -92,10 +83,7 @@ function setupEventListeners() {
     // Control events
     colorPicker.addEventListener('input', (e) => {
         currentColor = e.target.value;
-        isEraser = false;
-        isStrokeEraser = false;
-        eraserBtn.textContent = 'Eraser';
-        strokeEraserBtn.textContent = 'Stroke Eraser';
+        setTool('brush');
         updateActiveSwatch(currentColor);
     });
     
@@ -104,10 +92,31 @@ function setupEventListeners() {
         brushSizeValue.textContent = currentSize;
     });
     
+    brushBtn.addEventListener('click', () => setTool('brush'));
+    eraserBtn.addEventListener('click', () => setTool('eraser'));
+    strokeEraserBtn.addEventListener('click', () => setTool('strokeEraser'));
     clearBtn.addEventListener('click', clearCanvas);
-    eraserBtn.addEventListener('click', toggleEraser);
-    strokeEraserBtn.addEventListener('click', toggleStrokeEraser);
     saveBtn.addEventListener('click', saveDrawing);
+}
+
+// Set the current tool and update UI
+function setTool(tool) {
+    currentTool = tool;
+    
+    // Update button states
+    brushBtn.classList.remove('active-tool');
+    eraserBtn.classList.remove('active-tool');
+    strokeEraserBtn.classList.remove('active-tool');
+    
+    if (tool === 'brush') {
+        brushBtn.classList.add('active-tool');
+        ctx.strokeStyle = currentColor;
+    } else if (tool === 'eraser') {
+        eraserBtn.classList.add('active-tool');
+        ctx.strokeStyle = 'white';
+    } else if (tool === 'strokeEraser') {
+        strokeEraserBtn.classList.add('active-tool');
+    }
 }
 
 // Update the active color swatch
@@ -132,22 +141,19 @@ function draw(e) {
     
     const pos = getPosition(e);
     
-    if (isStrokeEraser) {
-        // For stroke eraser, track the path
+    if (currentTool === 'strokeEraser') {
         currentPath.push(pos);
         redrawCanvas();
     } else {
-        // Regular drawing or area erasing
         ctx.lineWidth = currentSize;
         ctx.lineCap = 'round';
-        ctx.strokeStyle = isEraser ? 'white' : currentColor;
+        ctx.strokeStyle = currentTool === 'eraser' ? 'white' : currentColor;
         
         ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(pos.x, pos.y);
         
-        // Track path for stroke eraser functionality
         currentPath.push(pos);
     }
 }
@@ -158,14 +164,12 @@ function stopDrawing() {
     ctx.beginPath();
     
     if (currentPath.length > 0) {
-        if (isStrokeEraser) {
-            // Find and remove intersecting paths
+        if (currentTool === 'strokeEraser') {
             lastPaths = lastPaths.filter(path => {
                 return !isPathIntersecting(currentPath, path);
             });
             redrawCanvas();
         } else {
-            // Add the current path to saved paths
             lastPaths.push([...currentPath]);
         }
         currentPath = [];
@@ -174,11 +178,9 @@ function stopDrawing() {
 
 // Redraw the entire canvas
 function redrawCanvas() {
-    // Clear canvas
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Redraw all saved paths
     ctx.strokeStyle = currentColor;
     ctx.lineWidth = currentSize;
     ctx.lineCap = 'round';
@@ -230,29 +232,7 @@ function getPosition(e) {
     return { x, y };
 }
 
-// Tool functions
-function toggleEraser() {
-    isEraser = !isEraser;
-    isStrokeEraser = false;
-    eraserBtn.textContent = isEraser ? 'Brush' : 'Eraser';
-    strokeEraserBtn.textContent = 'Stroke Eraser';
-    
-    if (!isEraser) {
-        ctx.strokeStyle = currentColor;
-    }
-}
-
-function toggleStrokeEraser() {
-    isStrokeEraser = !isStrokeEraser;
-    isEraser = false;
-    strokeEraserBtn.textContent = isStrokeEraser ? 'Brush' : 'Stroke Eraser';
-    eraserBtn.textContent = 'Eraser';
-    
-    if (!isStrokeEraser) {
-        ctx.strokeStyle = currentColor;
-    }
-}
-
+// Clear the canvas
 function clearCanvas() {
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -261,6 +241,7 @@ function clearCanvas() {
     currentPath = [];
 }
 
+// Save the drawing
 function saveDrawing() {
     const link = document.createElement('a');
     link.download = 'drawing.png';
