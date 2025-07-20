@@ -103,3 +103,34 @@ input[type="range"] {
         font-size: 14px;
     }
 }
+
+/* Add these to the existing styles.css */
+#text-btn {
+    background-color: #9C27B0;
+    color: white;
+}
+
+#line-btn {
+    background-color: #3F51B5;
+    color: white;
+}
+
+#rect-btn {
+    background-color: #009688;
+    color: white;
+}
+
+#circle-btn {
+    background-color: #CDDC39;
+    color: #333;
+}
+
+#arrow-btn {
+    background-color: #795548;
+    color: white;
+}
+
+#grid-btn {
+    background-color: #9E9E9E;
+    color: white;
+}
