@@ -9,17 +9,18 @@ const eraserBtn = document.getElementById('eraser-btn');
 const strokeEraserBtn = document.getElementById('stroke-eraser-btn');
 const clearBtn = document.getElementById('clear-btn');
 const saveBtn = document.getElementById('save-btn');
+const fullscreenBtn = document.getElementById('fullscreen-btn');
 const colorPalette = document.querySelector('.color-palette');
 
 // Drawing state
 let isDrawing = false;
 let currentColor = colorPicker.value;
 let currentSize = brushSize.value;
-let currentTool = 'brush'; // 'brush', 'eraser', or 'strokeEraser'
+let currentTool = 'brush';
 let lastPaths = [];
 let currentPath = [];
 
-// Color palette options
+// Color palette
 const paletteColors = [
     '#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', 
     '#ffff00', '#00ffff', '#ff00ff', '#ff9900', '#9900ff',
@@ -29,7 +30,8 @@ const paletteColors = [
 
 // Initialize the app
 function init() {
-    // Set up canvas with white background
+    // Set up canvas
+    resizeCanvas();
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = currentColor;
@@ -39,9 +41,52 @@ function init() {
     
     // Set up event listeners
     setupEventListeners();
+    
+    // Enter fullscreen automatically after a short delay
+    setTimeout(() => {
+        enterFullscreen();
+    }, 100);
 }
 
-// Create the color palette swatches
+// Handle canvas resizing
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - document.querySelector('.controls').offsetHeight;
+}
+
+// Fullscreen functions
+function enterFullscreen() {
+    try {
+        const element = document.documentElement;
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen();
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        }
+        fullscreenBtn.textContent = 'Fullscreen';
+    } catch (e) {
+        console.error("Fullscreen error:", e);
+    }
+}
+
+function exitFullscreen() {
+    try {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+        fullscreenBtn.textContent = 'Fullscreen';
+    } catch (e) {
+        console.error("Exit fullscreen error:", e);
+    }
+}
+
+// Create color palette
 function createColorPalette() {
     paletteColors.forEach(color => {
         const swatch = document.createElement('div');
@@ -67,8 +112,12 @@ function createColorPalette() {
     });
 }
 
-// Set up all event listeners
+// Set up event listeners
 function setupEventListeners() {
+    // Window events
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('fullscreenchange', updateFullscreenButton);
+    
     // Drawing events
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
@@ -97,9 +146,28 @@ function setupEventListeners() {
     strokeEraserBtn.addEventListener('click', () => setTool('strokeEraser'));
     clearBtn.addEventListener('click', clearCanvas);
     saveBtn.addEventListener('click', saveDrawing);
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
 }
 
-// Set the current tool and update UI
+// Update fullscreen button text
+function updateFullscreenButton() {
+    if (document.fullscreenElement) {
+        fullscreenBtn.textContent = 'Exit Fullscreen';
+    } else {
+        fullscreenBtn.textContent = 'Fullscreen';
+    }
+}
+
+// Toggle fullscreen
+function toggleFullscreen() {
+    if (document.fullscreenElement) {
+        exitFullscreen();
+    } else {
+        enterFullscreen();
+    }
+}
+
+// Set the current tool
 function setTool(tool) {
     currentTool = tool;
     
@@ -117,16 +185,6 @@ function setTool(tool) {
     } else if (tool === 'strokeEraser') {
         strokeEraserBtn.classList.add('active-tool');
     }
-}
-
-// Update the active color swatch
-function updateActiveSwatch(color) {
-    document.querySelectorAll('.color-swatch').forEach(swatch => {
-        swatch.classList.remove('active');
-        if (swatch.dataset.color === color) {
-            swatch.classList.add('active');
-        }
-    });
 }
 
 // Drawing functions
@@ -176,7 +234,7 @@ function stopDrawing() {
     }
 }
 
-// Redraw the entire canvas
+// Helper functions
 function redrawCanvas() {
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -199,7 +257,6 @@ function redrawCanvas() {
     });
 }
 
-// Check if two paths intersect
 function isPathIntersecting(path1, path2) {
     const threshold = currentSize * 2;
     
@@ -218,7 +275,6 @@ function isPathIntersecting(path1, path2) {
     return false;
 }
 
-// Get position from event
 function getPosition(e) {
     let x, y;
     if (e.type.includes('touch')) {
@@ -232,7 +288,15 @@ function getPosition(e) {
     return { x, y };
 }
 
-// Clear the canvas
+function updateActiveSwatch(color) {
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.classList.remove('active');
+        if (swatch.dataset.color === color) {
+            swatch.classList.add('active');
+        }
+    });
+}
+
 function clearCanvas() {
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -241,7 +305,6 @@ function clearCanvas() {
     currentPath = [];
 }
 
-// Save the drawing
 function saveDrawing() {
     const link = document.createElement('a');
     link.download = 'drawing.png';
