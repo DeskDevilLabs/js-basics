@@ -105,9 +105,63 @@ function resizeCanvas() {
     }
 }
 
-// Fullscreen functions (keep existing)
+// Fullscreen functions
+function enterFullscreen() {
+    try {
+        const element = document.documentElement;
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen();
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        }
+        fullscreenBtn.textContent = 'Exit Fullscreen';
+    } catch (e) {
+        console.error("Fullscreen error:", e);
+    }
+}
 
-// Create color palette (keep existing)
+function exitFullscreen() {
+    try {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+        fullscreenBtn.textContent = 'Fullscreen';
+    } catch (e) {
+        console.error("Exit fullscreen error:", e);
+    }
+}
+
+// Create color palette
+function createColorPalette() {
+    paletteColors.forEach(color => {
+        const swatch = document.createElement('div');
+        swatch.className = 'color-swatch';
+        swatch.style.backgroundColor = color;
+        swatch.dataset.color = color;
+        
+        if (color === currentColor) {
+            swatch.classList.add('active');
+        }
+        
+        swatch.addEventListener('click', () => {
+            document.querySelectorAll('.color-swatch').forEach(sw => {
+                sw.classList.remove('active');
+            });
+            swatch.classList.add('active');
+            currentColor = color;
+            colorPicker.value = color;
+            setTool(SHAPE_TYPES.BRUSH);
+        });
+        
+        colorPalette.appendChild(swatch);
+    });
+}
 
 // Set up event listeners
 function setupEventListeners() {
@@ -121,7 +175,10 @@ function setupEventListeners() {
     canvas.addEventListener('mouseup', stopDrawing);
     canvas.addEventListener('mouseout', stopDrawing);
     
-    // Touch events (keep existing)
+    // Touch events
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', handleTouchEnd);
     
     // Text input event
     textInput.addEventListener('keydown', handleTextInput);
@@ -151,9 +208,23 @@ function setupEventListeners() {
     fullscreenBtn.addEventListener('click', toggleFullscreen);
 }
 
-// Update fullscreen button text (keep existing)
+// Update fullscreen button text
+function updateFullscreenButton() {
+    if (document.fullscreenElement) {
+        fullscreenBtn.textContent = 'Exit Fullscreen';
+    } else {
+        fullscreenBtn.textContent = 'Fullscreen';
+    }
+}
 
-// Toggle fullscreen (keep existing)
+// Toggle fullscreen
+function toggleFullscreen() {
+    if (document.fullscreenElement) {
+        exitFullscreen();
+    } else {
+        enterFullscreen();
+    }
+}
 
 // Set the current tool
 function setTool(tool) {
@@ -367,8 +438,6 @@ function drawGrid() {
 }
 
 function redrawCanvas() {
-    // This would redraw all your shapes if you had a shapes array
-    // For now, just clear and redraw the grid if needed
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (isGridVisible) {
@@ -376,13 +445,57 @@ function redrawCanvas() {
     }
 }
 
-// Helper functions (keep existing getPosition, updateActiveSwatch, etc.)
+// Helper functions
+function getPosition(e) {
+    let x, y;
+    if (e.type.includes('touch')) {
+        const rect = canvas.getBoundingClientRect();
+        x = e.touches[0].clientX - rect.left;
+        y = e.touches[0].clientY - rect.top;
+    } else {
+        x = e.offsetX;
+        y = e.offsetY;
+    }
+    return { x, y };
+}
 
-// Clear canvas (keep existing)
+function updateActiveSwatch(color) {
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.classList.remove('active');
+        if (swatch.dataset.color === color) {
+            swatch.classList.add('active');
+        }
+    });
+}
 
-// Save drawing (keep existing)
+function clearCanvas() {
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = currentColor;
+}
 
-// Touch event handlers (keep existing)
+function saveDrawing() {
+    const link = document.createElement('a');
+    link.download = 'drawing.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+// Touch event handlers
+function handleTouchStart(e) {
+    e.preventDefault();
+    startDrawing(e);
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    draw(e);
+}
+
+function handleTouchEnd(e) {
+    e.preventDefault();
+    stopDrawing();
+}
 
 // Initialize the app
 init();
