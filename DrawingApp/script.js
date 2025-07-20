@@ -6,7 +6,6 @@ const brushSize = document.getElementById('brush-size');
 const brushSizeValue = document.getElementById('brush-size-value');
 const brushBtn = document.getElementById('brush-btn');
 const eraserBtn = document.getElementById('eraser-btn');
-const strokeEraserBtn = document.getElementById('stroke-eraser-btn');
 const clearBtn = document.getElementById('clear-btn');
 const saveBtn = document.getElementById('save-btn');
 const fullscreenBtn = document.getElementById('fullscreen-btn');
@@ -17,8 +16,6 @@ let isDrawing = false;
 let currentColor = colorPicker.value;
 let currentSize = brushSize.value;
 let currentTool = 'brush';
-let lastPaths = [];
-let currentPath = [];
 
 // Color palette
 const paletteColors = [
@@ -42,10 +39,11 @@ function init() {
     // Set up event listeners
     setupEventListeners();
     
-    // Enter fullscreen automatically after a short delay
-    setTimeout(() => {
+    // Enter fullscreen on first user interaction
+    document.addEventListener('click', function fullscreenOnClick() {
         enterFullscreen();
-    }, 100);
+        document.removeEventListener('click', fullscreenOnClick);
+    }, { once: true });
 }
 
 // Handle canvas resizing
@@ -143,7 +141,6 @@ function setupEventListeners() {
     
     brushBtn.addEventListener('click', () => setTool('brush'));
     eraserBtn.addEventListener('click', () => setTool('eraser'));
-    strokeEraserBtn.addEventListener('click', () => setTool('strokeEraser'));
     clearBtn.addEventListener('click', clearCanvas);
     saveBtn.addEventListener('click', saveDrawing);
     fullscreenBtn.addEventListener('click', toggleFullscreen);
@@ -174,7 +171,6 @@ function setTool(tool) {
     // Update button states
     brushBtn.classList.remove('active-tool');
     eraserBtn.classList.remove('active-tool');
-    strokeEraserBtn.classList.remove('active-tool');
     
     if (tool === 'brush') {
         brushBtn.classList.add('active-tool');
@@ -182,15 +178,12 @@ function setTool(tool) {
     } else if (tool === 'eraser') {
         eraserBtn.classList.add('active-tool');
         ctx.strokeStyle = 'white';
-    } else if (tool === 'strokeEraser') {
-        strokeEraserBtn.classList.add('active-tool');
     }
 }
 
 // Drawing functions
 function startDrawing(e) {
     isDrawing = true;
-    currentPath = [];
     draw(e);
 }
 
@@ -199,82 +192,23 @@ function draw(e) {
     
     const pos = getPosition(e);
     
-    if (currentTool === 'strokeEraser') {
-        currentPath.push(pos);
-        redrawCanvas();
-    } else {
-        ctx.lineWidth = currentSize;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = currentTool === 'eraser' ? 'white' : currentColor;
-        
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
-        
-        currentPath.push(pos);
-    }
+    ctx.lineWidth = currentSize;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = currentTool === 'eraser' ? 'white' : currentColor;
+    
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
 }
 
 function stopDrawing() {
     if (!isDrawing) return;
     isDrawing = false;
     ctx.beginPath();
-    
-    if (currentPath.length > 0) {
-        if (currentTool === 'strokeEraser') {
-            lastPaths = lastPaths.filter(path => {
-                return !isPathIntersecting(currentPath, path);
-            });
-            redrawCanvas();
-        } else {
-            lastPaths.push([...currentPath]);
-        }
-        currentPath = [];
-    }
 }
 
 // Helper functions
-function redrawCanvas() {
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = currentSize;
-    ctx.lineCap = 'round';
-    
-    lastPaths.forEach(path => {
-        if (path.length > 0) {
-            ctx.beginPath();
-            ctx.moveTo(path[0].x, path[0].y);
-            
-            for (let i = 1; i < path.length; i++) {
-                ctx.lineTo(path[i].x, path[i].y);
-            }
-            
-            ctx.stroke();
-        }
-    });
-}
-
-function isPathIntersecting(path1, path2) {
-    const threshold = currentSize * 2;
-    
-    for (const point1 of path1) {
-        for (const point2 of path2) {
-            const distance = Math.sqrt(
-                Math.pow(point1.x - point2.x, 2) + 
-                Math.pow(point1.y - point2.y, 2)
-            );
-            
-            if (distance < threshold) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 function getPosition(e) {
     let x, y;
     if (e.type.includes('touch')) {
@@ -301,8 +235,6 @@ function clearCanvas() {
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = currentColor;
-    lastPaths = [];
-    currentPath = [];
 }
 
 function saveDrawing() {

@@ -69,11 +69,6 @@ button.active-tool {
     color: white;
 }
 
-#stroke-eraser-btn {
-    background-color: #9C27B0;
-    color: white;
-}
-
 #clear-btn {
     background-color: #FF9800;
     color: white;
