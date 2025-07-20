@@ -90,21 +90,14 @@ function resizeCanvas() {
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
     
-    // Restore the content (if there was any)
-    if (imageData) {
-        ctx.putImageData(imageData, 0, 0);
-    } else {
-        // If no content, fill with white
+    // Redraw everything
+    redrawCanvas();
+    
+    // If there was no content, just fill with white
+    if (!imageData || ctx.getImageData(0, 0, 1, 1).data[3] === 0) {
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = currentColor;
-    }
-    
-    // Redraw grid if it was visible
-    if (isGridVisible) {
-        const tempImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        drawGrid();
-        ctx.putImageData(tempImage, 0, 0);
     }
 }
 
@@ -443,25 +436,21 @@ function handleTextInput(e) {
 // Grid functions
 function toggleGrid() {
     isGridVisible = !isGridVisible;
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Clear and redraw everything
+    redrawCanvas();
     
     if (isGridVisible) {
-        drawGrid();
         gridBtn.classList.add('active-tool');
     } else {
         gridBtn.classList.remove('active-tool');
     }
-    
-    ctx.putImageData(imageData, 0, 0);
 }
 
 function drawGrid() {
     const gridSize = 20;
-    ctx.strokeStyle = '#cccccc';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
+    ctx.lineWidth = 0.5;
     
     // Vertical lines
     for (let x = 0; x <= canvas.width; x += gridSize) {
@@ -481,13 +470,20 @@ function drawGrid() {
 }
 
 function redrawCanvas() {
+    // Save all the current content
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+    // Clear the canvas
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Restore the content first
+    ctx.putImageData(imageData, 0, 0);
+    
+    // Then draw grid on top if needed
     if (isGridVisible) {
         drawGrid();
     }
-    ctx.putImageData(imageData, 0, 0);
 }
 
 // Helper functions
@@ -518,6 +514,10 @@ function clearCanvas() {
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = currentColor;
+        // Redraw the grid if needed after clearing
+        if (isGridVisible) {
+            drawGrid();
+        }
     }
 }
 
