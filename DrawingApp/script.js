@@ -29,6 +29,14 @@ const paletteColors = [
 function init() {
     // Set up canvas
     resizeCanvas();
+
+    // Only fill with white if the canvas is empty
+    if (ctx.getImageData(0, 0, 1, 1).data[3] === 0) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = currentColor;
+    }
+    
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = currentColor;
@@ -46,10 +54,23 @@ function init() {
     }, { once: true });
 }
 
-// Handle canvas resizing
 function resizeCanvas() {
+    // Save the current canvas content
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+    // Resize the canvas
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight - document.querySelector('.controls').offsetHeight;
+    
+    // Restore the content (if there was any)
+    if (imageData) {
+        ctx.putImageData(imageData, 0, 0);
+    } else {
+        // If no content, fill with white
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = currentColor;
+    }
 }
 
 // Fullscreen functions
